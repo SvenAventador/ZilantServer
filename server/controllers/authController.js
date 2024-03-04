@@ -15,7 +15,7 @@ class AuthController {
                 userPassword,
                 userRole = 'USER'
             } = req.body
-
+            console.log(userEmail)
             if (!(Validation.isString(userEmail)) || !(Validation.isEmail(userEmail)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную почту!'))
 

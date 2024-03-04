@@ -121,6 +121,8 @@ class ClubController {
                 if (!club)
                     return next(ErrorHandler.notFound(`Клуб с номером ${id} не найден!`))
 
+                if (club.clubName === "ХК <<КАИ-ЗИЛАНТ>>")
+                    return next(ErrorHandler.conflict('Нельзя себя удалить :('))
                 await club.destroy()
                 return res.status(200).json({message: `Клуб с номером ${id} успешно удален!`})
             })
@@ -136,7 +138,8 @@ class ClubController {
                     return next(ErrorHandler.notFound('Клубы не найдены!'))
 
                 clubs.map((item) => {
-                    item.destroy()
+                    if (item.clubName !== "ХК <<КАИ-ЗИЛАНТ>>")
+                        item.destroy()
                 })
 
                 return res.status(200).json({message: 'Клубы успешно удалены!'})

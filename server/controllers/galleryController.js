@@ -10,10 +10,7 @@ class GalleryController {
             const gallery = await HockeyGallery.findAll({
                 include: {
                     model: GalleryImage,
-                    as: 'image',
-                    where: {
-                        isMainImage: true
-                    }
+                    as: 'image'
                 }
             })
 

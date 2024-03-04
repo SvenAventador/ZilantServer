@@ -29,7 +29,7 @@ class NewsController {
         const {id} = req.query
 
         try {
-            const candidate = News.findByPk(id)
+            const candidate = await News.findByPk(id)
 
             if (!candidate)
                 return next(ErrorHandler.notFound(`Новости с номером ${id} не найдено!`))
