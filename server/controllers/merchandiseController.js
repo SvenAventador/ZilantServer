@@ -1,8 +1,8 @@
-const ErrorHandler = require("../errors/errorHandler");
-const {Merchandise} = require("../database");
-const Validation = require("../validations/validation");
-const path = require("path");
-const uuid = require("uuid");
+const ErrorHandler = require("../errors/errorHandler")
+const {Merchandise} = require("../database")
+const Validation = require("../validations/validation")
+const path = require("path")
+const uuid = require("uuid")
 
 class MerchandiseController {
     async getOne(req, res, next) {
@@ -10,6 +10,9 @@ class MerchandiseController {
 
         try {
             const merchandise = await Merchandise.findByPk(id)
+            if (!merchandise)
+                return next(ErrorHandler.conflict(`Мерча с номером ${id} не существует!`))
+
             return res.json({merchandise})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -17,23 +20,8 @@ class MerchandiseController {
     }
 
     async getAll(req, res, next) {
-        let {
-            limit,
-            page
-        } = req.query
-
         try {
-            page = page || 1
-            limit = limit || 9
-            let offset = page * limit - limit
-
-            const merchandises = await Merchandise.findAll({
-                limit,
-                offset,
-                order: [[
-                    'id', 'asc'
-                ]]
-            })
+            const merchandises = await Merchandise.findAll()
             return res.json({merchandises})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -48,7 +36,7 @@ class MerchandiseController {
             merchandisePrice
         } = req.body
         const {merchandiseImage} = req.files || {}
-        const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+        const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif']
 
         try {
             if (!(Validation.isString(merchandiseName)))
@@ -56,7 +44,7 @@ class MerchandiseController {
             if (!(Validation.isString(merchandiseDescription)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректно описание атрибутики!'))
             if (!(Validation.isNumber(merchandiseAmount)) && merchandiseAmount <= 0)
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректно количество атрибутики! Количество атрибутики должно быть равно одному!'))
+                return next(ErrorHandler.badRequest('Пожалуйста, введите корректно количество атрибутики! Количество атрибутики должно быть равно минимум    одному!'))
             if (!(Validation.isNumber(merchandisePrice)) && merchandisePrice < 1000)
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректно цену атрибутики! Минимальная цена атрибутики равна 1000₽!'))
 
@@ -64,11 +52,11 @@ class MerchandiseController {
                 return next(ErrorHandler.badRequest('Пожалуйста, выберите изображение!'))
             const fileExtension = path.extname(merchandiseImage.name).toLowerCase()
             if (!allowedImageExtensions.includes(fileExtension))
-                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: jpg, jpeg, png или gif!'))
+                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
 
-            const candidate = await Merchandise.findOne({where: {merchandiseName}})
-            if (candidate)
-                return next(ErrorHandler.conflict(`Товар с именем ${merchandiseName} уже существует!`))
+            const merchandises = await Merchandise.findOne({where: {merchandiseName}})
+            if (merchandises)
+                return next(ErrorHandler.conflict(`Товар с названием ${merchandiseName} уже существует!`))
 
             let fileName = uuid.v4() + ".jpg"
             await merchandiseImage.mv(path.resolve(__dirname, '..', 'static', fileName))
@@ -96,21 +84,21 @@ class MerchandiseController {
             merchandisePrice
         } = req.body
 
-        let merchandiseImageFileName = null;
+        let merchandiseImageFileName = null
         if (req.files && req.files.merchandiseImage) {
-            const merchandiseImage = req.files.merchandiseImage;
-            const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+            const merchandiseImage = req.files.merchandiseImage
+            const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif']
             const fileExtension = path.extname(merchandiseImage.name).toLowerCase();
 
             if (!allowedImageExtensions.includes(fileExtension))
-                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: jpg, jpeg, png или gif!'));
+                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
 
-            merchandiseImageFileName = uuid.v4() + fileExtension;
+            merchandiseImageFileName = uuid.v4() + fileExtension
 
             try {
-                await merchandiseImage.mv(path.resolve(__dirname, '..', 'static', merchandiseImageFileName));
+                await merchandiseImage.mv(path.resolve(__dirname, '..', 'static', merchandiseImageFileName))
             } catch (error) {
-                return next(ErrorHandler.internal(`Ошибка при сохранении изображения: ${error}`));
+                return next(ErrorHandler.internal(`Ошибка при сохранении изображения: ${error}`))
             }
         }
 
@@ -124,23 +112,23 @@ class MerchandiseController {
             if (merchandisePrice && (!(Validation.isNumber(merchandisePrice)) && merchandisePrice < 1000))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректно цену атрибутики! Минимальная цена атрибутики равна 1000₽!'))
 
-            const candidate = await Merchandise.findByPk(id)
-            if (!candidate)
+            const merchandise = await Merchandise.findByPk(id)
+            if (!merchandise)
                 return next(ErrorHandler.notFound(`Товара с номером ${id} не найдено!`))
 
-            if (merchandiseName !== candidate.merchandiseName && await Merchandise.findOne({where: {merchandiseName}}))
-                return next(ErrorHandler.conflict(`Товар с именем ${merchandiseName} уже существует!`))
+            if (merchandiseName !== merchandise.merchandiseName && await Merchandise.findOne({where: {merchandiseName}}))
+                return next(ErrorHandler.conflict(`Товар с названием ${merchandiseName} уже существует!`))
 
             const merchandiseToUpdate = {
-                merchandiseName: merchandiseName || candidate.merchandiseName,
-                merchandiseDescription: merchandiseDescription || candidate.merchandiseDescription,
-                merchandiseAmount: merchandiseAmount || candidate.merchandiseAmount,
-                merchandisePrice: merchandisePrice || candidate.merchandisePrice,
-                merchandiseImage: merchandiseImageFileName ? merchandiseImageFileName : candidate.merchandiseImage
+                merchandiseName: merchandiseName || merchandise.merchandiseName,
+                merchandiseDescription: merchandiseDescription || merchandise.merchandiseDescription,
+                merchandiseAmount: merchandiseAmount || merchandise.merchandiseAmount,
+                merchandisePrice: merchandisePrice || merchandise.merchandisePrice,
+                merchandiseImage: merchandiseImageFileName ? merchandiseImageFileName : merchandise.merchandiseImage
             }
 
-            await candidate.update(merchandiseToUpdate)
-            return res.json({candidate})
+            await merchandise.update(merchandiseToUpdate)
+            return res.json({merchandise})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -150,13 +138,12 @@ class MerchandiseController {
         const {id} = req.query
 
         try {
-            await Merchandise.findByPk(id).then(async (data) => {
-                if (!data)
-                    return next(ErrorHandler.notFound(`Товар с номером ${id} не найден!`))
+            const merchandise = await Merchandise.findByPk(id)
+            if (!merchandise)
+                return next(ErrorHandler.notFound(`Товара с номером ${id} не существует!`))
 
-                await data.destroy()
-                return res.status(200).json({message: `Товар с номером ${id} успешно удален!`})
-            })
+            await merchandise.destroy()
+            return res.status(200).json({message: `Товар с номером ${id} успешно удален!`})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -164,15 +151,12 @@ class MerchandiseController {
 
     async deleteAll(req, res, next) {
         try {
-            await Merchandise.findAll().then((data)  => {
-                if (!data.length)
-                    return next(ErrorHandler.notFound(`Товары не найдены`))
-
-                data.map((item) => {
-                    item.destroy()
-                })
-                return res.status(200).json({message: 'Товары успешно удалены!'})
+            const merchandises = await Merchandise.findAll()
+            merchandises.map(async (merchandise) => {
+                await merchandise.destroy()
             })
+
+            return res.status(200).json({message: 'Товары успешно удалены!'})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

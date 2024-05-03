@@ -2,9 +2,9 @@ const Router = require('express')
 const routes = new Router()
 const CommentController = require('../controllers/commentsController')
 
-routes.get('/getAllComment', CommentController.getAll)
-routes.post('/createComment', CommentController.create)
-routes.put('/updateComment', CommentController.edit)
-routes.delete('/deleteOneComment', CommentController.deleteOne)
+routes.get('/', CommentController.getAll)
+routes.post('/:newsId', CommentController.create)
+routes.put('/', CommentController.edit)
+routes.delete('/', CommentController.deleteOne)
 
 module.exports = routes

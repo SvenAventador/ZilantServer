@@ -4,7 +4,7 @@ const {
     News,
     User,
     NewsComments
-} = require("../database");
+} = require("../database")
 
 class CommentsController {
     async getAll(req, res, next) {
@@ -20,20 +20,21 @@ class CommentsController {
     }
 
     async create(req, res, next) {
+        const {newsId} = req.params
         const {
             newsComment,
-            newsId,
             userId
         } = req.body
 
         try {
             if (!(Validation.isString(newsComment)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректный комментарий!'))
-
-            if (!await News.findByPk(newsId))
-                return next(ErrorHandler.notFound(`Новости с номером ${newsId} не найдено!`))
-            if (!await User.findByPk(userId))
-                return next(ErrorHandler.notFound(`Пользователя с номером ${userId} не найдено!`))
+            const news = await News.findByPk(newsId)
+            if (!news)
+                return next(ErrorHandler.notFound(`Новости под номером ${newsId} не существует!`))
+            const user = await User.findByPk(userId)
+            if (!user)
+                return next(ErrorHandler.notFound(`Пользователя под номером ${userId} не существует!`))
 
             const comment = await NewsComments.create({
                 newsComment,
@@ -49,19 +50,23 @@ class CommentsController {
 
     async edit(req, res, next) {
         const {id} = req.query
-        const {newsComment} = req.body
-        try {
-            const candidate = await NewsComments.findByPk(id)
-            if (!candidate)
-                return next(ErrorHandler.notFound('Комментарий не найден...'))
+        const {newsComment, userId} = req.body
 
-            const candidateToUpdate = {
-                newsComment: newsComment || candidate.newsComment,
+        try {
+            const comment = await NewsComments.findByPk(id)
+            if (!comment)
+                return next(ErrorHandler.notFound('Данного комментария не найдено!'))
+
+            if (comment.userId !== userId)
+                return next(ErrorHandler.conflict('Это не Ваш комментарий. Изменять ничего нельзя!'))
+
+            const updateComment = {
+                newsComment: newsComment || comment.newsComment,
                 isEditable: true
             }
 
-            await candidate.update(candidateToUpdate)
-            return res.json({candidate})
+            await comment.update(updateComment)
+            return res.json({comment})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -71,13 +76,12 @@ class CommentsController {
         const {id} = req.query
 
         try {
-            await NewsComments.findByPk(id).then(async (data) => {
-                if (!data)
-                    return next(ErrorHandler.notFound('Комментарий не найден...'))
+            const currentComment = await NewsComments.findByPk(id)
+            if (!currentComment)
+                return next(ErrorHandler.notFound('Комментарий не найден!'))
 
-                await data.destroy()
-                return res.status(200).json({message: 'Комментарий успешно удален!'})
-            })
+            await currentComment.destroy()
+            return res.status(200).json({message: 'Комментарий успешно удален!'})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

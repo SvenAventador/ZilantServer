@@ -2,11 +2,11 @@ const Router = require('express')
 const routes = new Router()
 const MatchController = require('../controllers/matchController')
 
-routes.get('/getOneMatch', MatchController.getOne)
-routes.get('/getAllMatch', MatchController.getAll)
-routes.post('/createMatch', MatchController.create)
-routes.put('/editMatch', MatchController.edit)
-routes.delete('/deleteOneMatch', MatchController.deleteOne)
-routes.delete('/deleteAllMatch', MatchController.deleteAll)
+routes.get('/one', MatchController.getOne)
+routes.get('/', MatchController.getAll)
+routes.post('/', MatchController.create)
+routes.put('/', MatchController.edit)
+routes.delete('/one', MatchController.deleteOne)
+routes.delete('/', MatchController.deleteAll)
 
 module.exports = routes

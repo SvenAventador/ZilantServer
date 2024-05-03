@@ -57,7 +57,7 @@ class Validation {
     }
 
     static generate_jwt(
-        userId,
+        id,
         userName,
         userEmail,
         userRole,
@@ -66,7 +66,7 @@ class Validation {
         userPhone = null
     ) {
         const payload = {
-            userId,
+            id,
             userName,
             userEmail,
             userRole,

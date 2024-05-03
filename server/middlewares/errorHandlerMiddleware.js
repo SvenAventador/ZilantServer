@@ -6,10 +6,9 @@ module.exports = function (
     res,
     next
 ) {
-
     if (error instanceof ErrorHandler) {
         return res.status(error.status).json({message: error.message})
     }
-    return ErrorHandler.internal('Произошла ошибка во время работы сервера.')
 
+    return ErrorHandler.internal('Произошла ошибка во время работы сервера.')
 }

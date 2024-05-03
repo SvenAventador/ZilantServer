@@ -1,11 +1,11 @@
-const ErrorHandler = require("../errors/errorHandler");
-const {User} = require("../database");
-const Validation = require("../validations/validation");
-const bcrypt = require("bcrypt");
+const ErrorHandler = require("../errors/errorHandler")
+const {User} = require("../database")
+const Validation = require("../validations/validation")
+const bcrypt = require("bcrypt")
 
 class PersonalController {
     async editData(req, res, next) {
-        const {id} = req.query
+        const {id} = req.params
         const {
             userName,
             userEmail,
@@ -16,11 +16,8 @@ class PersonalController {
         } = req.body
 
         try {
-            if (id === undefined)
-                return next(ErrorHandler.badRequest('Передан некорректный идентификатор!'))
-
-            const candidate = await User.findByPk(id)
-            if (!candidate)
+            const user = await User.findByPk(id)
+            if (!user)
                 return next(ErrorHandler.notFound(`Пользователь с идентификатором ${id} не найден!`))
 
             if (userName && !(Validation.isString(userName)))
@@ -41,33 +38,33 @@ class PersonalController {
             if (userPhone && (!(Validation.isString(userPhone)) || !(Validation.isPhone(userPhone))))
                 return next(ErrorHandler.badRequest('Пожалуйста, задайте корректный номер телефона!'))
 
-            if (userName && userName !== candidate.userName && await User.findOne({where: {userName}}))
+            if (userName && userName !== user.userName && await User.findOne({where: {userName}}))
                 return next(ErrorHandler.conflict(`Пользователь с именем ${userName} уже существует!`))
 
-            if (userEmail && userEmail !== candidate.userEmail && await User.findOne({where: {userEmail}}))
+            if (userEmail && userEmail !== user.userEmail && await User.findOne({where: {userEmail}}))
                 return next(ErrorHandler.conflict(`Пользователь с почтой ${userEmail} уже существует!`))
 
-            if (userPhone && userPhone !== candidate.userPhone && await User.findOne({where: {userPhone}}))
+            if (userPhone && userPhone !== user.userPhone && await User.findOne({where: {userPhone}}))
                 return next(ErrorHandler.conflict(`Пользователь с номером ${userPhone} уже существует!`))
 
             const userToUpdate = {
-                userName: userName || candidate.userName,
-                userEmail: userEmail || candidate.userEmail,
-                userPassword: await bcrypt.hash(userPassword, 5) || candidate.userPassword,
-                userFio: userFio || candidate.userFio,
-                userAddress: userAddress || candidate.userAddress,
-                userPhone: userPhone || candidate.userPhone,
+                userName: userName || user.userName,
+                userEmail: userEmail || user.userEmail,
+                userPassword: await bcrypt.hash(userPassword, 5) || user.userPassword,
+                userFio: userFio || user.userFio,
+                userAddress: userAddress || user.userAddress,
+                userPhone: userPhone || user.userPhone,
             }
 
-            await candidate.update(userToUpdate)
+            await user.update(userToUpdate)
             const token = Validation.generate_jwt(
-                candidate.id,
-                candidate.userName,
-                candidate.userEmail,
-                candidate.userRole,
-                candidate.userFio,
-                candidate.userAddress,
-                candidate.userPhone
+                user.id,
+                user.userName,
+                user.userEmail,
+                user.userRole,
+                user.userFio,
+                user.userAddress,
+                user.userPhone
             )
 
             return res.json({token})

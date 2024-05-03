@@ -2,11 +2,11 @@ const Router = require('express')
 const routes = new Router()
 const PlayerController = require('../controllers/playerController')
 
-routes.get('/getOnePlayer', PlayerController.getOne)
-routes.get('/getAllPlayer', PlayerController.getAll)
-routes.post('/create', PlayerController.create)
-routes.put('/edit', PlayerController.edit)
-routes.delete('/deleteOnePlayer', PlayerController.deleteOne)
-routes.delete('/deleteAllPlayer', PlayerController.deleteAll)
+routes.get('/one', PlayerController.getOne)
+routes.get('/', PlayerController.getAll)
+routes.post('/', PlayerController.create)
+routes.put('/', PlayerController.edit)
+routes.delete('/one', PlayerController.deleteOne)
+routes.delete('/', PlayerController.deleteAll)
 
 module.exports = routes

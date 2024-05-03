@@ -1,20 +1,21 @@
-const ErrorHandler = require("../errors/errorHandler");
+const ErrorHandler = require("../errors/errorHandler")
 const {
     GameMatch,
-    HockeyClub, News
-} = require("../database");
-const Validation = require("../validations/validation");
-const {Op} = require("sequelize");
+    HockeyClub
+} = require("../database")
+const Validation = require("../validations/validation")
+const {Op} = require("sequelize")
 
 class MatchController {
     async getOne(req, res, next) {
         const {id} = req.query
 
         try {
-            const candidate = await GameMatch.findByPk(id)
-            if (!candidate)
+            const match = await GameMatch.findByPk(id)
+            if (!match)
                 return next(ErrorHandler.notFound(`Матч с номером ${id} не найден!`))
-            return res.json({candidate})
+
+            return res.json({match})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -22,7 +23,10 @@ class MatchController {
 
     async getAll(req, res, next) {
         try {
-            const matches = await GameMatch.findAll({include: HockeyClub})
+            const matches = await GameMatch.findAll({
+                include: HockeyClub
+            })
+
             return res.json({matches})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -35,14 +39,15 @@ class MatchController {
             matchTime,
             hockeyClubId
         } = req.body
+
         try {
             if (!(Validation.isDate(matchDate)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную дату! Формат: YYYY-MM-DD!'))
             if (!(Validation.isTime(matchTime)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное время! Формат: HH:MM:SS!'))
 
-            const zilant = await HockeyClub.findByPk(hockeyClubId)
-            if (zilant.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))
+            const currentClub = await HockeyClub.findByPk(hockeyClubId)
+            if (currentClub?.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))
                 return next(ErrorHandler.conflict(`Клуб с номером ${hockeyClubId} не найден!`))
 
             if (new Date(matchDate).toISOString().split('T')[0] < new Date().toISOString().split('T')[0])
@@ -71,8 +76,8 @@ class MatchController {
         } = req.body
 
         try {
-            const candidate = await GameMatch.findByPk(id)
-            if (!candidate)
+            const currentMatch = await GameMatch.findByPk(id)
+            if (!currentMatch)
                 return next(ErrorHandler.notFound('Данного матча не найдено 🤔'))
 
             if (!(Validation.isDate(matchDate)))
@@ -80,33 +85,36 @@ class MatchController {
             if (!(Validation.isTime(matchTime)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное время! Формат: HH:MM:SS!'))
 
-            const zilant = await HockeyClub.findByPk(hockeyClubId)
-            if (zilant.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))
+            const currentClub = await HockeyClub.findByPk(hockeyClubId)
+            if (currentClub.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))
                 return next(ErrorHandler.conflict(`Клуб с номером ${hockeyClubId} не найден!`))
 
             if (new Date(matchDate).toISOString().split('T')[0] < new Date().toISOString().split('T')[0])
                 return next(ErrorHandler.conflict('А мы что, в прошлом играть умеем? 🤣'))
             if (new Date(matchDate).toISOString().split('T')[0] === new Date().toISOString().split('T')[0])
                 return next(ErrorHandler.conflict('Не издевайтесь над ребятами, они не могут узнавать об игре день в день! 😭'))
+
             const existingGameOnDate = await GameMatch.findOne({
                 where: {
                     matchDate: new Date(matchDate),
-                    id: {[Op.ne]: id}
+                    id: {
+                        [Op.ne]: id
+                    }
                 }
-            });
+            })
 
             if (existingGameOnDate && existingGameOnDate.id !== id) {
-                return next(ErrorHandler.forbidden('Две игры в день? Не нужно так делать! 🤬'));
+                return next(ErrorHandler.forbidden('Две игры в день? Не нужно так делать! 🤬'))
             }
 
-            const candidateToUpdate = {
-                matchDate: matchDate || candidate.matchDate,
-                matchTime: matchTime || candidate.matchTime,
-                hockeyClubId: hockeyClubId || candidate.hockeyClubId
+            const updateMatch = {
+                matchDate: matchDate || currentMatch.matchDate,
+                matchTime: matchTime || currentMatch.matchTime,
+                hockeyClubId: hockeyClubId || currentMatch.hockeyClubId
             }
 
-            await candidate.update(candidateToUpdate)
-            return res.json({candidate})
+            await currentMatch.update(updateMatch)
+            return res.json({currentMatch})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -114,14 +122,14 @@ class MatchController {
 
     async deleteOne(req, res, next) {
         const {id} = req.query
-        try {
-            await GameMatch.findByPk(id).then(async (match) => {
-                if (!match)
-                    return next(ErrorHandler.notFound(`Матч с номером ${id} не найден!`))
 
-                await match.destroy()
-                return res.status(200).json({message: `Матч с номером ${id} успешно удален!`})
-            })
+        try {
+            const match = await GameMatch.findByPk(id)
+            if (!match)
+                return next(ErrorHandler.notFound(`Матч с номером ${id} не найден!`))
+
+            await match.destroy()
+            return res.status(200).json({message: `Матч с номером ${id} успешно удален!`})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -129,16 +137,12 @@ class MatchController {
 
     async deleteAll(req, res, next) {
         try {
-            await GameMatch.findAll().then((match) => {
-                if (!match.length)
-                    return next(ErrorHandler.notFound('Матчи не найдены!'))
-
-                match.map((item) => {
-                    item.destroy()
-                })
-
-                return res.status(200).json({message: 'Матчи успешно удалены!'})
+            const matches = await GameMatch.findAll()
+            matches.map(async (item) => {
+                await item.destroy()
             })
+
+            return res.status(200).json({message: 'Матчи успешно удалены!'})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

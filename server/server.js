@@ -11,6 +11,7 @@ const errorMiddleware = require('./middlewares/errorHandlerMiddleware')
 
 const database = require('./database/db')
 require('./database/index')
+const {User} = require("./database");
 
 const app = express()
 app.use(express.json())
@@ -26,6 +27,15 @@ const start = async () => {
     try {
         await database.authenticate()
         await database.sync()
+
+        const user = await User.findOne({where: {userName: 'admin'}})
+        if (user) {
+            console.log('This data already exist in the User table!')
+        } else {
+            await User.create(JSON.parse(process.env.USER_ADMIN_DATA));
+            console.log('The data was successfully added in the User table!')
+        }
+
         await app.listen(PORT, () => {
             console.log(`Server started on PORT ${PORT}`)
         })

@@ -2,10 +2,10 @@ const Router = require('express')
 const routes = new Router()
 const GalleryController = require('../controllers/galleryController')
 
-routes.get('/getOneGallery', GalleryController.getOne)
-routes.get('/getAllGallery', GalleryController.getAll)
-routes.post('/createGallery', GalleryController.create)
-routes.delete('/deleteOneGallery', GalleryController.deleteOne)
-routes.delete('/deleteAllGallery', GalleryController.deleteAll)
+routes.get('/:id', GalleryController.getOne)
+routes.get('/', GalleryController.getAll)
+routes.post('/', GalleryController.create)
+routes.delete('/one', GalleryController.deleteOne)
+routes.delete('/', GalleryController.deleteAll)
 
 module.exports = routes

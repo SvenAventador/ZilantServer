@@ -1,10 +1,10 @@
-const Validation = require("../validations/validation");
-const ErrorHandler = require("../errors/errorHandler");
-const bcrypt = require("bcrypt");
+const Validation = require("../validations/validation")
+const ErrorHandler = require("../errors/errorHandler")
+const bcrypt = require("bcrypt")
 const {
     Cart,
     User
-} = require("../database");
+} = require("../database")
 
 class AuthController {
     async registration(req, res, next) {
@@ -15,7 +15,9 @@ class AuthController {
                 userPassword,
                 userRole = 'USER'
             } = req.body
-            console.log(userEmail)
+
+            if (Validation.isEmpty(userName))
+                return next(ErrorHandler.badRequest('Пожалуйста, введите корректный никнейм!'))
             if (!(Validation.isString(userEmail)) || !(Validation.isEmail(userEmail)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную почту!'))
 
@@ -76,6 +78,7 @@ class AuthController {
             if (!(bcrypt.compareSync(userPassword, candidate.userPassword))) {
                 return next(ErrorHandler.conflict('Вы ввели неправильный пароль!'))
             }
+
             const token = Validation.generate_jwt(
                 candidate.id,
                 candidate.userName,

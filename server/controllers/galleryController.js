@@ -1,27 +1,33 @@
-const ErrorHandler = require("../errors/errorHandler");
-const {HockeyGallery, GalleryImage, Merchandise} = require("../database");
-const Validation = require("../validations/validation");
-const path = require("path");
+const ErrorHandler = require("../errors/errorHandler")
+const {
+    HockeyGallery,
+    GalleryImage
+} = require("../database")
+const Validation = require("../validations/validation")
+const path = require("path")
 const crypto = require('crypto')
 
 class GalleryController {
     async getAll(req, res, next) {
         try {
-            const gallery = await HockeyGallery.findAll({
+            const galleries = await HockeyGallery.findAll({
                 include: {
                     model: GalleryImage,
-                    as: 'image'
+                    as: 'image',
+                    where: {
+                        isMainImage: true
+                    }
                 }
             })
 
-            return res.json({gallery})
+            return res.json({galleries})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
     }
 
     async getOne(req, res, next) {
-        const {id} = req.query
+        const {id} = req.params
 
         try {
             const candidate = await HockeyGallery.findByPk(id, {
@@ -35,7 +41,7 @@ class GalleryController {
 
             return res.json({candidate})
         } catch (error) {
-
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
     }
 
@@ -52,8 +58,8 @@ class GalleryController {
             if (!(Validation.isString(galleryDescription)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное описание галлереи!!'))
 
-            const candidate = await HockeyGallery.findOne({where: {galleryTitle}})
-            if (candidate)
+            const galleryCandidate = await HockeyGallery.findOne({where: {galleryTitle}})
+            if (galleryCandidate)
                 return next(ErrorHandler.conflict(`Галлерея с названием ${galleryTitle} уже существует!`))
 
             const gallery = await HockeyGallery.create({
@@ -62,9 +68,14 @@ class GalleryController {
             })
 
             let galleryImage = []
-
             if (image && Array.isArray(image)) {
+                const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
                 for (let images of image) {
+                    const fileExtension = path.extname(images.name).toLowerCase()
+                    if (!allowedImageExtensions.includes(fileExtension)) {
+                        return next(ErrorHandler.badRequest('Пожалуйста, загрузите изображения в форматах .jpeg, .jpg, .png или .gif!'));
+                    }
+
                     const fileName = crypto.randomBytes(16).toString('hex') + '.jpg'
                     await images.mv(path.resolve(__dirname, '..', 'static', fileName))
                     galleryImage.push({imageName: fileName})
@@ -72,14 +83,14 @@ class GalleryController {
             }
 
             if (galleryImage.length > 0) {
-                await Promise.all(galleryImage.map((image, index) =>
-                        GalleryImage.create({
+                await Promise.all(galleryImage.map(async (image, index) =>
+                        await GalleryImage.create({
                             imageName: image.imageName,
                             hockeyGalleryId: gallery.id,
                             isMainImage: index === 0
                         })
                     )
-                );
+                )
             } else if (galleryImage.length <= 0) {
                 return next(ErrorHandler.conflict("Пожалуйста, добавьте хотя бы одно изображение в галлерею!"))
             }
@@ -94,14 +105,22 @@ class GalleryController {
         const {id} = req.query
 
         try {
-            const candidate = await HockeyGallery.findByPk(id)
-            await GalleryImage.findAll({where: {hockeyGalleryId: candidate.id}}).then((data) => {
-                data.map(async (item) => {
-                    await item.destroy()
-                })
-            })
+            const gallery = await HockeyGallery.findByPk(id)
+            if (!gallery)
+                return next(ErrorHandler.notFound(`Галлереи под номером ${id} не существует!`))
 
-            await candidate.destroy()
+            const images = await GalleryImage.findAll({
+                where: {
+                    hockeyGalleryId: gallery.id
+                }
+            })
+            if (images) {
+                images.map(async (galleryItem) => {
+                    await galleryItem.destroy()
+                })
+            }
+
+            await gallery.destroy()
             return res.status(200).json({message: `Галерея с номером ${id} успешно удалена!`})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -110,20 +129,27 @@ class GalleryController {
 
     async deleteAll(req, res, next) {
         try {
+            const images = await GalleryImage.findAll()
+            if (images) {
+                images.map(async (galleryItem) => {
+                    await galleryItem.destroy()
+                })
+            }
+
+            const hockeyGallery = await HockeyGallery.findAll()
+            if (!hockeyGallery.length)
+                return next(ErrorHandler.notFound('Ни одной галлереи не найдено в системе!'))
+            hockeyGallery.map(async (hockeyGalleryItem) => {
+                await hockeyGalleryItem.destroy()
+            })
+
             await GalleryImage.findAll().then((data) => {
                 data.map(async (item) => {
                     await item.destroy()
                 })
             })
-            await HockeyGallery.findAll().then((data)  => {
-                if (!data.length)
-                    return next(ErrorHandler.notFound(`Галереи не найдены!`))
 
-                data.map(async (item) => {
-                    await item.destroy()
-                })
-                return res.status(200).json({message: 'Галереи успешно удалены!'})
-            })
+            return res.status(200).json({message: 'Все галлереи успешно удалены!'})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

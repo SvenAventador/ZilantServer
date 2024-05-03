@@ -1,18 +1,19 @@
-const ErrorHandler = require("../errors/errorHandler");
-const {HockeyClub} = require("../database");
-const Validation = require("../validations/validation");
-const path = require("path");
-const uuid = require("uuid");
+const ErrorHandler = require("../errors/errorHandler")
+const {HockeyClub} = require("../database")
+const Validation = require("../validations/validation")
+const path = require("path")
+const uuid = require("uuid")
 
 class ClubController {
     async getOne(req, res, next) {
         const {id} = req.query
+
         try {
-            const candidate = await HockeyClub.findByPk(id)
-            if (!candidate)
+            const club = await HockeyClub.findByPk(id)
+            if (!club)
                 return next(ErrorHandler.notFound(`Клуб с номером ${id} не найден!`))
 
-            return res.json({candidate})
+            return res.json({club})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -20,7 +21,12 @@ class ClubController {
 
     async getAll(req, res, next) {
         try {
-            const clubs = await HockeyClub.findAll({order: [['clubPoint', 'desc']]})
+            const clubs = await HockeyClub.findAll({
+                order: [
+                    ['clubPoint', 'desc']
+                ]
+            })
+
             return res.json({clubs})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -32,21 +38,21 @@ class ClubController {
             clubName
         } = req.body
 
-        const {clubImage} = req.files
+        const {clubImage} = req.files || {}
         const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
 
         try {
             if (!(Validation.isString(clubName)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректный заголовок для новости!'))
+                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное название клуба!'))
 
             if (clubImage === undefined)
                 return next(ErrorHandler.badRequest('Пожалуйста, выберите изображение!'))
             const fileExtension = path.extname(clubImage.name).toLowerCase()
             if (!allowedImageExtensions.includes(fileExtension))
-                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: jpg, jpeg, png или gif!'))
+                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
 
-            const candidate = await HockeyClub.findOne({where: {clubName}})
-            if (candidate)
+            const clubCandidate = await HockeyClub.findOne({where: {clubName}})
+            if (clubCandidate)
                 return next(ErrorHandler.conflict(`Клуб с названием ${clubName} уже существует!`))
 
             let fileName = uuid.v4() + ".jpg"
@@ -75,12 +81,9 @@ class ClubController {
             const clubImage = req.files.newsImage;
             const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
             const fileExtension = path.extname(clubImage.name).toLowerCase();
-
             if (!allowedImageExtensions.includes(fileExtension))
-                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: jpg, jpeg, png или gif!'));
-
+                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'));
             clubImageFileName = uuid.v4() + fileExtension;
-
             try {
                 await clubImage.mv(path.resolve(__dirname, '..', 'static', clubImageFileName));
             } catch (error) {
@@ -90,25 +93,25 @@ class ClubController {
 
         try {
             if (!(Validation.isString(clubName)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректный заголовок для новости!'))
+                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное название клуба!'))
             if (!(Validation.isNumber(clubPoint)) && clubPoint < 0)
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное количество очков!'))
 
-            const candidate = await HockeyClub.findByPk(id)
-            if (!candidate)
+            const currentClub = await HockeyClub.findByPk(id)
+            if (!currentClub)
                 return next(ErrorHandler.conflict(`Клуба с идентификатором ${id} не найдено!`))
 
-            if (clubName !== candidate.clubName && await HockeyClub.findOne({where: {clubName}}))
+            if (clubName !== currentClub.clubName && await HockeyClub.findOne({where: {clubName}}))
                 return next(ErrorHandler.conflict(`Клуб с названием '${clubName}' уже существует!`))
 
-            const candidateToUpdate = {
-                clubName: clubName || candidate.clubName,
-                clubPoint: clubPoint || candidate.clubPoint,
-                clubImage: clubImageFileName ? clubImageFileName : candidate.clubName
+            const updateClub = {
+                clubName: clubName || currentClub.clubName,
+                clubPoint: clubPoint || currentClub.clubPoint,
+                clubImage: clubImageFileName ? clubImageFileName : currentClub.clubName
             }
 
-            await candidate.update(candidateToUpdate)
-            return res.json({candidate})
+            await currentClub.update(updateClub)
+            return res.json({currentClub})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -116,16 +119,17 @@ class ClubController {
 
     async deleteOne(req, res, next) {
         const {id} = req.query
-        try {
-            await HockeyClub.findByPk(id).then(async (club) => {
-                if (!club)
-                    return next(ErrorHandler.notFound(`Клуб с номером ${id} не найден!`))
 
-                if (club.clubName === "ХК <<КАИ-ЗИЛАНТ>>")
-                    return next(ErrorHandler.conflict('Нельзя себя удалить :('))
-                await club.destroy()
-                return res.status(200).json({message: `Клуб с номером ${id} успешно удален!`})
-            })
+        try {
+            const currentClub = await HockeyClub.findByPk(id)
+            if (!currentClub)
+                return next(ErrorHandler.notFound(`Клуб с идентификатором ${id} не существует!`))
+
+            if (currentClub.clubName === 'ХК <<КАИ-ЗИЛАНТ>>')
+                return next(ErrorHandler.conflict('Вы не можете удалить свою же команду. Решение об исключении команды из СХЛ приинимает высшее руководство!'))
+
+            await currentClub.destroy()
+            return res.status(200).json({message: `Клуб с номером ${id} успешно удален!`})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -133,17 +137,13 @@ class ClubController {
 
     async deleteAll(req, res, next) {
         try {
-            await HockeyClub.findAll().then((clubs) => {
-                if (!clubs.length)
-                    return next(ErrorHandler.notFound('Клубы не найдены!'))
-
-                clubs.map((item) => {
-                    if (item.clubName !== "ХК <<КАИ-ЗИЛАНТ>>")
-                        item.destroy()
-                })
-
-                return res.status(200).json({message: 'Клубы успешно удалены!'})
+            const clubs = await HockeyClub.findAll()
+            clubs.map(async (currentClub) => {
+                if (currentClub.clubName !== 'ХК <<КАИ-ЗИЛАНТ>>')
+                    await currentClub.destroy()
             })
+
+            return res.status(200).json({message: 'Клубы успешно удалены!'})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

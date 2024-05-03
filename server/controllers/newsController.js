@@ -1,40 +1,32 @@
-const ErrorHandler = require("../errors/errorHandler");
-const Validation = require("../validations/validation");
+const ErrorHandler = require("../errors/errorHandler")
+const Validation = require("../validations/validation")
 const {
     News,
+    NewsChapter,
     NewsComments
-} = require("../database");
-const path = require("path");
-const uuid = require("uuid");
+} = require("../database")
+const path = require("path")
+const uuid = require("uuid")
 
 class NewsController {
-    async getOneWithComments(req, res, next) {
+    async getOne(req, res, next) {
         const {id} = req.params
 
         try {
-            const candidate = News.findByPk(id, {
-                include: NewsComments
+            const news = await News.findByPk(id, {
+                include: [
+                    {
+                        model: NewsComments
+                    },
+                    {
+                        model: NewsChapter
+                    }
+                ]
             })
-
-            if (!candidate)
+            if (!news)
                 return next(ErrorHandler.notFound(`Новости с номером ${id} не найдено!`))
 
-            return res.json({candidate})
-        } catch (error) {
-            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
-        }
-    }
-
-    async getOneWithoutComments(req, res, next) {
-        const {id} = req.query
-
-        try {
-            const candidate = await News.findByPk(id)
-
-            if (!candidate)
-                return next(ErrorHandler.notFound(`Новости с номером ${id} не найдено!`))
-
-            return res.json({candidate})
+            return res.json({news})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -51,9 +43,10 @@ class NewsController {
 
     async create(req, res, next) {
         const {
-            newsTitle,
-            newsView
+            newsTitle
         } = req.body
+
+        let {newsContent} = req.body
 
         const {newsImage} = req.files
         const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
@@ -61,17 +54,15 @@ class NewsController {
         try {
             if (!(Validation.isString(newsTitle)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректный заголовок для новости!'))
-            if (!(Validation.isString(newsView)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное описание новости!'))
 
             if (newsImage === undefined)
                 return next(ErrorHandler.badRequest('Пожалуйста, выберите изображение!'))
             const fileExtension = path.extname(newsImage.name).toLowerCase()
             if (!allowedImageExtensions.includes(fileExtension))
-                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: jpg, jpeg, png или gif!'))
+                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
 
-            const candidate = await News.findOne({where: {newsTitle}})
-            if (candidate)
+            const titleCandidate = await News.findOne({where: {newsTitle}})
+            if (titleCandidate)
                 return next(ErrorHandler.conflict(`Новость с заголовком ${newsTitle} уже существует!`))
 
             let fileName = uuid.v4() + ".jpg"
@@ -79,9 +70,14 @@ class NewsController {
 
             const news = await News.create({
                 newsTitle,
-                newsView,
                 newsImage: fileName
             })
+
+            newsContent = JSON.parse(newsContent)
+            await NewsChapter.bulkCreate(newsContent.map((item) => ({
+                newsChapter: item.newsChapter,
+                newsId: news.id
+            })))
 
             return res.json({news})
         } catch (error) {
@@ -96,21 +92,21 @@ class NewsController {
             newsView
         } = req.body
 
-        let newsImageFileName = null;
+        let newsImageFileName = null
         if (req.files && req.files.newsImage) {
-            const newsImage = req.files.newsImage;
-            const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-            const fileExtension = path.extname(newsImage.name).toLowerCase();
+            const newsImage = req.files.newsImage
+            const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif']
+            const fileExtension = path.extname(newsImage.name).toLowerCase()
 
             if (!allowedImageExtensions.includes(fileExtension))
-                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: jpg, jpeg, png или gif!'));
+                return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
 
             newsImageFileName = uuid.v4() + fileExtension;
 
             try {
-                await newsImage.mv(path.resolve(__dirname, '..', 'static', newsImageFileName));
+                await newsImage.mv(path.resolve(__dirname, '..', 'static', newsImageFileName))
             } catch (error) {
-                return next(ErrorHandler.internal(`Ошибка при сохранении изображения: ${error}`));
+                return next(ErrorHandler.internal(`Ошибка при сохранении изображения: ${error}`))
             }
         }
 
@@ -120,21 +116,21 @@ class NewsController {
             if (!(Validation.isString(newsView)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное описание новости!'))
 
-            const candidate = await News.findByPk(id)
-            if (!candidate)
+            const news = await News.findByPk(id)
+            if (!news)
                 return next(ErrorHandler.conflict(`Новости с идентификатором ${id} не найдено!`))
 
-            if (newsTitle !== candidate.newsTitle && await News.findOne({where: {newsTitle}}))
+            if (newsTitle !== news.newsTitle && await News.findOne({where: {newsTitle}}))
                 return next(ErrorHandler.conflict(`Заголовок навости '${newsTitle}' уже существует!`))
 
-            const candidateToUpdate = {
-                newsTitle: newsTitle || candidate.newsTitle,
-                newsView: newsView || candidate.newsView,
-                newsImage: newsImageFileName ? newsImageFileName : candidate.newsImage
+            const newsUpdate = {
+                newsTitle: newsTitle || news.newsTitle,
+                newsView: newsView || news.newsView,
+                newsImage: newsImageFileName ? newsImageFileName : news.newsImage
             }
 
-            await candidate.update(candidateToUpdate)
-            return res.json({candidate})
+            await news.update(newsUpdate)
+            return res.json({news})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -142,14 +138,14 @@ class NewsController {
 
     async deleteOne(req, res, next) {
         const {id} = req.query
-        try {
-            await News.findByPk(id).then(async (news) => {
-                if (!news)
-                    return next(ErrorHandler.notFound(`Новость с номером ${id} не найдена!`))
 
-                await news.destroy()
-                return res.status(200).json({message: `Новость с номером ${id} успешно удалена!`})
-            })
+        try {
+            const news = await News.findByPk(id)
+            if (!news)
+                return next(ErrorHandler.notFound(`Новости с номером ${id} не найдено!`))
+
+            await news.destroy()
+            return res.status(200).json({message: `Новость с номером ${id} успешно удалена!`})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
@@ -157,16 +153,12 @@ class NewsController {
 
     async deleteAll(req, res, next) {
         try {
-            await News.findAll().then((news) => {
-                if (!news.length)
-                    return next(ErrorHandler.notFound('Новости не найдены!'))
-
-                news.map((item) => {
-                    item.destroy()
-                })
-
-                return res.status(200).json({message: 'Новости успешно удалены!'})
+            const news = await News.findAll()
+            news.map(async (newsItem) => {
+                await newsItem.destroy()
             })
+
+            return res.status(200).json({message: 'Новости успешно удалены!'})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

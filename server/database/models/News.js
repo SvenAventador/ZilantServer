@@ -1,6 +1,7 @@
-const {DataTypes, TEXT} = require('sequelize')
+const {DataTypes} = require('sequelize')
 const sequelize = require('../db')
-const NewsComments = require("./NewsComments");
+const NewsComments = require("./NewsComments")
+const NewsChapter = require("./NewsChapter")
 
 const News = sequelize.define('news', {
     id: {
@@ -20,14 +21,14 @@ const News = sequelize.define('news', {
     newsImage: {
         type: DataTypes.TEXT,
         allowNull: false
-    },
-    newsView: {
-        type: DataTypes.TEXT,
-        allowNull: false
     }
 })
 
 News.hasMany(NewsComments)
 NewsComments.belongsTo(News)
+
+News.hasMany(NewsChapter)
+NewsChapter.belongsTo(News)
+
 
 module.exports = News

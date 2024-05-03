@@ -14,6 +14,7 @@ const Order = require("./models/Order");
 const PaymentStatus = require("./models/PaymentStatus");
 const PlayerDescription = require("./models/PlayerDescription");
 const User = require("./models/User");
+const NewsChapter = require("./models/NewsChapter");
 
 module.exports = {
     Cart,
@@ -27,6 +28,7 @@ module.exports = {
     MerchandiseCart,
     MerchandiseOrder,
     News,
+    NewsChapter,
     NewsComments,
     Order,
     PaymentStatus,
