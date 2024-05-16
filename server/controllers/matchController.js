@@ -41,11 +41,6 @@ class MatchController {
         } = req.body
 
         try {
-            if (!(Validation.isDate(matchDate)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректную дату! Формат: YYYY-MM-DD!'))
-            if (!(Validation.isTime(matchTime)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное время! Формат: HH:MM:SS!'))
-
             const currentClub = await HockeyClub.findByPk(hockeyClubId)
             if (currentClub?.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))
                 return next(ErrorHandler.conflict(`Клуб с номером ${hockeyClubId} не найден!`))
@@ -79,11 +74,6 @@ class MatchController {
             const currentMatch = await GameMatch.findByPk(id)
             if (!currentMatch)
                 return next(ErrorHandler.notFound('Данного матча не найдено 🤔'))
-
-            if (!(Validation.isDate(matchDate)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректную дату! Формат: YYYY-MM-DD!'))
-            if (!(Validation.isTime(matchTime)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное время! Формат: HH:MM:SS!'))
 
             const currentClub = await HockeyClub.findByPk(hockeyClubId)
             if (currentClub.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))

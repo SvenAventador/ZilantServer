@@ -77,8 +77,8 @@ class ClubController {
         } = req.body
 
         let clubImageFileName = null;
-        if (req.files && req.files.newsImage) {
-            const clubImage = req.files.newsImage;
+        if (req.files && req.files.clubImage) {
+            const clubImage = req.files.clubImage;
             const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
             const fileExtension = path.extname(clubImage.name).toLowerCase();
             if (!allowedImageExtensions.includes(fileExtension))
@@ -103,11 +103,11 @@ class ClubController {
 
             if (clubName !== currentClub.clubName && await HockeyClub.findOne({where: {clubName}}))
                 return next(ErrorHandler.conflict(`Клуб с названием '${clubName}' уже существует!`))
-
+            console.log(clubImageFileName, currentClub.clubImage)
             const updateClub = {
                 clubName: clubName || currentClub.clubName,
                 clubPoint: clubPoint || currentClub.clubPoint,
-                clubImage: clubImageFileName ? clubImageFileName : currentClub.clubName
+                clubImage: clubImageFileName ? clubImageFileName : currentClub.clubImage
             }
 
             await currentClub.update(updateClub)

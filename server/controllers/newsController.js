@@ -3,7 +3,7 @@ const Validation = require("../validations/validation")
 const {
     News,
     NewsChapter,
-    NewsComments
+    NewsComments, User
 } = require("../database")
 const path = require("path")
 const uuid = require("uuid")
@@ -16,11 +16,12 @@ class NewsController {
             const news = await News.findByPk(id, {
                 include: [
                     {
-                        model: NewsComments
+                        model: NewsComments,
+                        include: [User]
                     },
                     {
                         model: NewsChapter
-                    }
+                    },
                 ]
             })
             if (!news)
@@ -88,8 +89,7 @@ class NewsController {
     async edit(req, res, next) {
         const {id} = req.query
         const {
-            newsTitle,
-            newsView
+            newsTitle
         } = req.body
 
         let newsImageFileName = null
@@ -113,8 +113,6 @@ class NewsController {
         try {
             if (!(Validation.isString(newsTitle)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректный заголовок для новости!'))
-            if (!(Validation.isString(newsView)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное описание новости!'))
 
             const news = await News.findByPk(id)
             if (!news)
@@ -125,7 +123,6 @@ class NewsController {
 
             const newsUpdate = {
                 newsTitle: newsTitle || news.newsTitle,
-                newsView: newsView || news.newsView,
                 newsImage: newsImageFileName ? newsImageFileName : news.newsImage
             }
 

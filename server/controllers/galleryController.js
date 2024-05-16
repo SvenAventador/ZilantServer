@@ -26,6 +26,21 @@ class GalleryController {
         }
     }
 
+    async getAllWithImages(req, res, next) {
+        try {
+            const galleries = await HockeyGallery.findAll({
+                include: {
+                    model: GalleryImage,
+                    as: 'image'
+                }
+            })
+
+            return res.json({galleries})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
+
     async getOne(req, res, next) {
         const {id} = req.params
 

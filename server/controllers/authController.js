@@ -96,7 +96,7 @@ class AuthController {
 
     async check(req, res, next) {
         const token = Validation.generate_jwt(
-            req.user.userId,
+            req.user.id,
             req.user.userName,
             req.user.userEmail,
             req.user.userRole

@@ -27,8 +27,6 @@ class CommentsController {
         } = req.body
 
         try {
-            if (!(Validation.isString(newsComment)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректный комментарий!'))
             const news = await News.findByPk(newsId)
             if (!news)
                 return next(ErrorHandler.notFound(`Новости под номером ${newsId} не существует!`))
