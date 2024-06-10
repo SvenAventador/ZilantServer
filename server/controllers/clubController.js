@@ -3,6 +3,7 @@ const {HockeyClub} = require("../database")
 const Validation = require("../validations/validation")
 const path = require("path")
 const uuid = require("uuid")
+const {Sequelize} = require("sequelize");
 
 class ClubController {
     async getOne(req, res, next) {
@@ -30,6 +31,25 @@ class ClubController {
             return res.json({clubs})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
+
+    async getAllWithoutZilant(req, res, next) {
+        try {
+            const clubs = await HockeyClub.findAll({
+                where: {
+                    id: {
+                        [Sequelize.Op.ne]: 1 // Оператор "не равно"
+                    }
+                },
+                order: [
+                    ['clubPoint', 'desc']
+                ]
+            });
+
+            return res.json({ clubs });
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`));
         }
     }
 

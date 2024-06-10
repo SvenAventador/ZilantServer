@@ -33,6 +33,17 @@ class NewsController {
         }
     }
 
+    async getRandomNews(req, res, next) {
+        try {
+            const count = await News.count();
+            const randomIndex = Math.floor(Math.random() * count);
+            const randomNewsRecord = await News.findOne({ offset: randomIndex });
+            return res.json({randomNewsRecord});
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
+
     async getAll(req, res, next) {
         try {
             const news = await News.findAll()
