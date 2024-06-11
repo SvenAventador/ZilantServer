@@ -58,7 +58,10 @@ class NewsController {
             newsTitle
         } = req.body
 
-        let {newsContent} = req.body
+        let {
+            newsContent,
+            newsDescription
+        } = req.body
 
         const {newsImage} = req.files
         const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
@@ -82,6 +85,7 @@ class NewsController {
 
             const news = await News.create({
                 newsTitle,
+                newsDescription,
                 newsImage: fileName
             })
 
@@ -100,7 +104,8 @@ class NewsController {
     async edit(req, res, next) {
         const {id} = req.query
         const {
-            newsTitle
+            newsTitle,
+            newsDescription
         } = req.body
 
         let newsImageFileName = null
@@ -134,6 +139,7 @@ class NewsController {
 
             const newsUpdate = {
                 newsTitle: newsTitle || news.newsTitle,
+                newsDescription: newsDescription || news.newsDescription,
                 newsImage: newsImageFileName ? newsImageFileName : news.newsImage
             }
 

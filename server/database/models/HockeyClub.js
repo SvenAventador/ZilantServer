@@ -27,7 +27,7 @@ HockeyClub.bulkCreate([
     {
         clubName: 'ХК <<КАИ-ЗИЛАНТ>>',
         clubPoint: 0,
-        clubImage: 'KAI-ZILANT.jpg'
+        clubImage: 'KAI-KAI-ZILANT.jpg'
     }
 ]).then(() => {
     console.log('Успешно создан клуб ХК <<КАИ-ЗИЛАНТ>>!')

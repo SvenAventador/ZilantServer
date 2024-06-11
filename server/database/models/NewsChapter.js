@@ -8,7 +8,7 @@ const NewsChapter = sequelize.define('news_chapter', {
         autoIncrement: true
     },
     newsChapter: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false
     }
 })

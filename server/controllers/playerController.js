@@ -29,6 +29,33 @@ class PlayerController {
         }
     }
 
+    async getAllGoalkeeper(req, res, next) {
+        try {
+            const goalkeepers = await ClubPlayer.findAll({where: {playerPosition: 'Вратарь'}})
+            return res.json({goalkeepers})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
+
+    async getAllDefender(req, res, next) {
+        try {
+            const defenders = await ClubPlayer.findAll({where: {playerPosition: 'Защитник'}})
+            return res.json({defenders})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
+
+    async getAllAttack(req, res, next) {
+        try {
+            const attack = await ClubPlayer.findAll({where: {playerPosition: 'Нападающий'}})
+            return res.json({attack})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
+
     async create(req, res, next) {
         const {
             playerSurname,
@@ -101,8 +128,8 @@ class PlayerController {
         ]
 
         let playerImageFileName = null;
-        if (req.files && req.files.merchandiseImage) {
-            const playerImage = req.files.merchandiseImage
+        if (req.files && req.files.playerImage) {
+            const playerImage = req.files.playerImage
             const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif']
             const fileExtension = path.extname(playerImage.name).toLowerCase()
 

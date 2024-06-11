@@ -1,5 +1,5 @@
 const ErrorHandler = require("../errors/errorHandler")
-const {HockeyClub} = require("../database")
+const {HockeyClub, GameMatch} = require("../database")
 const Validation = require("../validations/validation")
 const path = require("path")
 const uuid = require("uuid")
@@ -31,25 +31,6 @@ class ClubController {
             return res.json({clubs})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
-        }
-    }
-
-    async getAllWithoutZilant(req, res, next) {
-        try {
-            const clubs = await HockeyClub.findAll({
-                where: {
-                    id: {
-                        [Sequelize.Op.ne]: 1 // Оператор "не равно"
-                    }
-                },
-                order: [
-                    ['clubPoint', 'desc']
-                ]
-            });
-
-            return res.json({ clubs });
-        } catch (error) {
-            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`));
         }
     }
 
@@ -93,7 +74,6 @@ class ClubController {
         const {id} = req.query
         const {
             clubName,
-            clubPoint
         } = req.body
 
         let clubImageFileName = null;
@@ -114,8 +94,6 @@ class ClubController {
         try {
             if (!(Validation.isString(clubName)))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное название клуба!'))
-            if (!(Validation.isNumber(clubPoint)) && clubPoint < 0)
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное количество очков!'))
 
             const currentClub = await HockeyClub.findByPk(id)
             if (!currentClub)
@@ -126,7 +104,6 @@ class ClubController {
             console.log(clubImageFileName, currentClub.clubImage)
             const updateClub = {
                 clubName: clubName || currentClub.clubName,
-                clubPoint: clubPoint || currentClub.clubPoint,
                 clubImage: clubImageFileName ? clubImageFileName : currentClub.clubImage
             }
 
@@ -148,6 +125,12 @@ class ClubController {
             if (currentClub.clubName === 'ХК <<КАИ-ЗИЛАНТ>>')
                 return next(ErrorHandler.conflict('Вы не можете удалить свою же команду. Решение об исключении команды из СХЛ приинимает высшее руководство!'))
 
+
+            const matches = await GameMatch.findAll({where: {hockeyClubId: id}})
+            matches.map(async (match) => {
+                await match.destroy()
+            })
+
             await currentClub.destroy()
             return res.status(200).json({message: `Клуб с номером ${id} успешно удален!`})
         } catch (error) {
@@ -158,6 +141,12 @@ class ClubController {
     async deleteAll(req, res, next) {
         try {
             const clubs = await HockeyClub.findAll()
+
+            const matches = await GameMatch.findAll()
+            matches.map(async (match) => {
+                await match.destroy()
+            })
+
             clubs.map(async (currentClub) => {
                 if (currentClub.clubName !== 'ХК <<КАИ-ЗИЛАНТ>>')
                     await currentClub.destroy()

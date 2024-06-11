@@ -1,28 +1,32 @@
 const {DataTypes} = require('sequelize')
 const sequelize = require('../db')
 
-const GameMatch = sequelize.define('game_match', {
+const MainPerson = sequelize.define('main_person', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    matchDate: {
-        type: DataTypes.DATE,
-        allowNull: false
-    },
-    matchTime: {
-        type: DataTypes.TIME,
-        allowNull: false
-    },
-    icePlace: {
+    personSurname: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    gameScore: {
+    personName: {
         type: DataTypes.STRING,
+        allowNull: false
+    },
+    personPatronymic: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    personPosition: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    personImage: {
+        type: DataTypes.TEXT,
         allowNull: true
     }
 })
 
-module.exports = GameMatch
+module.exports = MainPerson

@@ -3,7 +3,6 @@ const {
     GameMatch,
     HockeyClub
 } = require("../database")
-const Validation = require("../validations/validation")
 const {Op} = require("sequelize")
 
 class MatchController {
@@ -37,6 +36,7 @@ class MatchController {
         const {
             matchDate,
             matchTime,
+            icePlace,
             hockeyClubId
         } = req.body
 
@@ -52,6 +52,7 @@ class MatchController {
 
             const match = await GameMatch.create({
                 matchDate: new Date(matchDate),
+                icePlace,
                 matchTime,
                 hockeyClubId
             })
@@ -65,8 +66,7 @@ class MatchController {
     async edit(req, res, next) {
         const {id} = req.query
         const {
-            matchDate,
-            matchTime,
+            gameScore,
             hockeyClubId
         } = req.body
 
@@ -75,36 +75,43 @@ class MatchController {
             if (!currentMatch)
                 return next(ErrorHandler.notFound('Данного матча не найдено 🤔'))
 
-            const currentClub = await HockeyClub.findByPk(hockeyClubId)
-            if (currentClub.clubName === 'ХК <<КАИ-ЗИЛАНТ>>' || !(await HockeyClub.findByPk(hockeyClubId)))
-                return next(ErrorHandler.conflict(`Клуб с номером ${hockeyClubId} не найден!`))
+            if (new Date(currentMatch.matchDate) >= new Date())
+                return next(ErrorHandler.conflict('Матч еще не прошел!!'))
 
-            if (new Date(matchDate).toISOString().split('T')[0] < new Date().toISOString().split('T')[0])
-                return next(ErrorHandler.conflict('А мы что, в прошлом играть умеем? 🤣'))
-            if (new Date(matchDate).toISOString().split('T')[0] === new Date().toISOString().split('T')[0])
-                return next(ErrorHandler.conflict('Не издевайтесь над ребятами, они не могут узнавать об игре день в день! 😭'))
+            const zilantClub = await HockeyClub.findByPk(1)
+            const otherHC = await HockeyClub.findByPk(hockeyClubId)
+            const [zilant, otherClub] = gameScore.split(':')
 
-            const existingGameOnDate = await GameMatch.findOne({
-                where: {
-                    matchDate: new Date(matchDate),
-                    id: {
-                        [Op.ne]: id
-                    }
-                }
+            if (currentMatch.gameScore !== null)
+                return next(ErrorHandler.badRequest('В данном матче уже установлен счет!'))
+
+            if (zilant.includes('О') || zilant.includes('Б')) {
+                zilantClub.clubPoint += 2
+                otherHC.clubPoint += 1
+            }
+
+            if (otherClub.includes('О') || otherClub.includes('Б')) {
+                zilantClub.clubPoint += 1
+                otherHC.clubPoint += 2
+            }
+
+            if (parseInt(zilant) > parseInt(otherClub)) {
+                zilantClub.clubPoint += 3
+                otherHC.clubPoint += 0
+            }
+
+            if (parseInt(zilant) < parseInt(otherClub)) {
+                zilantClub.clubPoint += 0
+                otherHC.clubPoint += 3
+            }
+
+            await zilantClub.save()
+            await otherHC.save()
+
+            await currentMatch.update({
+                gameScore
             })
-
-            if (existingGameOnDate && existingGameOnDate.id !== id) {
-                return next(ErrorHandler.forbidden('Две игры в день? Не нужно так делать! 🤬'))
-            }
-
-            const updateMatch = {
-                matchDate: matchDate || currentMatch.matchDate,
-                matchTime: matchTime || currentMatch.matchTime,
-                hockeyClubId: hockeyClubId || currentMatch.hockeyClubId
-            }
-
-            await currentMatch.update(updateMatch)
-            return res.json({currentMatch})
+            return res.json({message: "Результат матча успешно сохранен!"})
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }

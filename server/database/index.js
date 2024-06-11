@@ -4,6 +4,7 @@ const DeliveryStatus = require("./models/DeliveryStatus");
 const GalleryImage = require("./models/GalleryImage");
 const GameMatch = require("./models/GameMatch");
 const HockeyClub = require("./models/HockeyClub");
+const MainPerson = require("./models/MainPerson");
 const HockeyGallery = require("./models/HockeyGallery");
 const Merchandise = require("./models/Merchandise");
 const MerchandiseCart = require("./models/MerchandiseCart");
@@ -24,6 +25,7 @@ module.exports = {
     GameMatch,
     HockeyClub,
     HockeyGallery,
+    MainPerson,
     Merchandise,
     MerchandiseCart,
     MerchandiseOrder,
