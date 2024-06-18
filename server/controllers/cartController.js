@@ -1,101 +1,141 @@
-const {Cart, MerchandiseCart, Merchandise} = require("../database");
+const {
+    Cart,
+    MerchandiseCart,
+    Merchandise
+} = require("../database");
 const ErrorHandler = require("../errors/errorHandler");
 
 class CartController {
-    async getCartId(req, res, next) {
-        try {
-            const {id} = req.params
+    async getOne(req, res, next) {
+        const {id} = req.query
 
-            const cart = await Cart.findOne({where: {userId: id}})
-            return res.json(cart)
+        try {
+            const cart = await Cart.findByPk(id)
+            return res.json(cart.dataValues.id)
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
     }
 
-    async getAllGood(req, res, next) {
+    async getAllGoods(req, res, next) {
+        const {id} = req.params
+
         try {
-            const {id} = req.params
+            const cart_merchandise = await MerchandiseCart.findAll({where: {cartId: id}})
+            const merchandiseId = cart_merchandise.map((item) => item.merchandiseId)
 
-            const cartDevices = await MerchandiseCart.findAll({
-                where: {cartId: id},
-                include: [
-                    {
-                        model: Merchandise,
-                        as: 'merchandise',
-                    },
-                ],
-            });
+            let merchandise = []
+            for (let i = 0; i < merchandiseId.length; i++) {
+                const merch = await Merchandise.findByPk(merchandiseId[i])
+                merchandise.push(merch.dataValues)
+            }
 
-            // Extract the merchandise items
-            const merchandiseItems = cartDevices.map(cartDevice => cartDevice.merchandise);
-
-            return res.json(merchandiseItems);
-        } catch {
-            return next(ErrorHandler.internal("Произошла ошибка во время выполнения запроса!"))
+            return res.json(merchandise)
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
     }
 
-    async createMerchandise(req, res, next) {
-        const {
-            cartId,
-            merchandiseId
-        } = req.body()
-
+    async createGood(req, res, next) {
+        const {id} = req.params
+        const {merchandiseId} = req.query
         try {
-            const candidate = await MerchandiseCart.findOne({
+            const cart_merchandise = await MerchandiseCart.findOne({
                 where: {
-                    cartId,
-                    merchandiseId
+                    cartId: id,
+                    merchandiseId: merchandiseId
                 }
             })
 
-            const merchandise = await Merchandise.findOne({where: {id: merchandiseId}})
+            const merchandise = await Merchandise.findByPk(merchandiseId)
+            if (cart_merchandise) {
+                if (merchandise.amount < cart_merchandise.count)
+                    return res.json(ErrorHandler.conflict('Данного товара больше нет на складе!'))
 
-            if (candidate) {
-                if (merchandise.merchandiseAmount < candidate.count )
-                    return next(ErrorHandler.conflict('Товаров-то нет :|'))
-
-                await candidate.update({count: candidate.count + 1})
-                return res.json({message: "Товар обновил свое количество!"})
+                await cart_merchandise.update({
+                    count: cart_merchandise.count + 1
+                })
+                return res.json({message: "Товар успешно обновил свое количество в коризне!"})
             }
 
-            await MerchandiseCart.create({cartId, merchandiseId})
-            return res.json({message: "Товар успешно добавлен в коризну"})
+            await MerchandiseCart.create({
+                cartId: id,
+                merchandiseId: merchandiseId
+            })
+
+            return res.json({message: "Товар успешно добавлен в корзину!"})
         } catch (error) {
-            return next(ErrorHandler.internal("Произошла ошибка во время выполнения запроса!"))
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
     }
 
-    async deleteItem(req, res, next) {
+    async updateAmountGood(req, res, next) {
+        const {id} = req.params
+        const {merchandiseId} = req.query
+        const {count} = req.body
+        console.log(count)
+        try {
+            const merchandise = await Merchandise.findByPk(merchandiseId)
+            const cart_merchandise = await MerchandiseCart.findOne({
+                where: {
+                    cartId: id,
+                    merchandiseId: merchandiseId
+                }
+            })
 
+            if (cart_merchandise) {
+                if (merchandise.amount < count)
+                    return res.json(ErrorHandler.conflict('Данного товара больше нет на складе!'))
+
+                await cart_merchandise.update({
+                    count: count
+                })
+                return res.json({message: "товар успешно обновил свое количество в коризне!"})
+            }
+
+            return res.json({message: "Что-то пошло не так!"})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
     }
 
-    async deleteAll(req, res, next) {
-
-    }
-
-    async updateAmountDevice(req, res, next) {
-        const {id, deviceAmount} = req.body
+    async deleteGood(req, res, next) {
+        const {id} = req.params
+        const {merchandiseId} = req.query
 
         try {
-            const deviceCandidate = await Device.findOne({where: {id: id}})
-            const cartDevice = await CartDevice.findOne({where: {deviceId: id}})
-            if (!cartDevice) {
-                return next(ErrorHandler.badRequest('Данной записи не найдено!'))
-            }
-            if (deviceCandidate.deviceCount < deviceAmount) {
-                return next(ErrorHandler.conflict('Данного товара больше нет на складе!'))
-            }
+            const cart_merchandise = await MerchandiseCart.findOne({
+                where: {
+                    cartId: id,
+                    merchandiseId: merchandiseId
+                }
+            })
 
-            await cartDevice.update({amountDevice: deviceAmount})
-
-            return res.json({message: "Количество успешно обновлено!" + "Количество: ", deviceAmount})
-        } catch {
-            return next(ErrorHandler.internal("Произошла ошибка во время выполнения запроса!"))
+            await cart_merchandise.destroy()
+            return res.status(200).json({message: "Товар успешно удален из корзины!"})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
         }
     }
 
+    async deleteAllGood(req, res, next) {
+        const {id} = req.params
+
+        try {
+            const cart_merchandise = await MerchandiseCart.findAll({
+                where: {
+                    cartId: id
+                }
+            })
+
+            cart_merchandise.map(async (cart) => {
+                await cart.destroy()
+            })
+            return res.status(200).json({message: "Товары успешно удален из корзины!"})
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
+    }
 }
 
 module.exports = new CartController();
