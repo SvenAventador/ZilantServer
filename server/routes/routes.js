@@ -10,8 +10,9 @@ const matchRoutes = require('./matchRoutes')
 const commentRoutes = require('./commentsRoutes')
 const playerRoutes = require('./playerRoutes')
 const galleryRoutes = require('./galleryRoutes')
-const personal = require('./mainPersons')
+const personal = require('./mainRoutes')
 const cartRoutes = require('./cartRoutes')
+const orderRoutes = require('./orderRoutes')
 
 router.use('/user', userRoutes)
 router.use('/personal', personalRoutes)
@@ -24,5 +25,6 @@ router.use('/player', playerRoutes)
 router.use('/gallery', galleryRoutes)
 router.use('/personal', personal)
 router.use('/cart', cartRoutes)
+router.use('/order', orderRoutes)
 
 module.exports = router

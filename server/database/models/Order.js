@@ -11,6 +11,10 @@ const Order = sequelize.define('order', {
     dateOrder: {
         type: DataTypes.DATEONLY,
         defaultValue: Date.now()
+    },
+    fullPrice: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
 })
 

@@ -10,7 +10,7 @@ class CartController {
         const {id} = req.query
 
         try {
-            const cart = await Cart.findByPk(id)
+            const cart = await Cart.findOne({where: {userId: id}})
             return res.json(cart.dataValues.id)
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -26,7 +26,16 @@ class CartController {
 
             let merchandise = []
             for (let i = 0; i < merchandiseId.length; i++) {
-                const merch = await Merchandise.findByPk(merchandiseId[i])
+                const merch = await Merchandise.findByPk(merchandiseId[i],
+                    {
+                        include: {
+                            model: MerchandiseCart,
+                            where: {
+                                cartId: id,
+                                merchandiseId: merchandiseId[i]
+                            }
+                        }
+                    })
                 merchandise.push(merch.dataValues)
             }
 
@@ -49,8 +58,8 @@ class CartController {
 
             const merchandise = await Merchandise.findByPk(merchandiseId)
             if (cart_merchandise) {
-                if (merchandise.amount < cart_merchandise.count)
-                    return res.json(ErrorHandler.conflict('Данного товара больше нет на складе!'))
+                if (merchandise.merchandiseAmount < cart_merchandise.count + 1)
+                    return next(ErrorHandler.conflict('Данного товара больше нет на складе!'))
 
                 await cart_merchandise.update({
                     count: cart_merchandise.count + 1
@@ -73,7 +82,7 @@ class CartController {
         const {id} = req.params
         const {merchandiseId} = req.query
         const {count} = req.body
-        console.log(count)
+
         try {
             const merchandise = await Merchandise.findByPk(merchandiseId)
             const cart_merchandise = await MerchandiseCart.findOne({
@@ -84,8 +93,8 @@ class CartController {
             })
 
             if (cart_merchandise) {
-                if (merchandise.amount < count)
-                    return res.json(ErrorHandler.conflict('Данного товара больше нет на складе!'))
+                if (merchandise.merchandiseAmount < count)
+                    return next(ErrorHandler.conflict('Данного товара больше нет на складе!'))
 
                 await cart_merchandise.update({
                     count: count
@@ -110,6 +119,8 @@ class CartController {
                     merchandiseId: merchandiseId
                 }
             })
+
+            console.log(cart_merchandise)
 
             await cart_merchandise.destroy()
             return res.status(200).json({message: "Товар успешно удален из корзины!"})
