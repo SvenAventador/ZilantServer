@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
 const path = require('path');
-const fs = require('fs');
 const {v4} = require('uuid');
 
 const transporter = nodemailer.createTransport({
@@ -44,7 +43,6 @@ async function sendEmailWithImages(imagePaths, merchandiseList, recipientEmail, 
         };
 
         await transporter.sendMail(mailOptions);
-        console.log(`Email sent to ${recipientEmail}`);
     } catch (error) {
         throw new Error(`Failed to send email with images: ${error.message}`);
     }

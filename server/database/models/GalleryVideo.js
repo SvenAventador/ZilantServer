@@ -1,8 +1,8 @@
 const {DataTypes} = require('sequelize')
 const sequelize = require('../db')
-const GalleryImage = require("./GalleryImage");
+const GalleryVideoList = require("./GalleryVideoList");
 
-const HockeyGallery = sequelize.define('hockey_gallery', {
+const GalleryVideo = sequelize.define('gallery_video', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -16,11 +16,15 @@ const HockeyGallery = sequelize.define('hockey_gallery', {
     galleryDescription: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    galleryImage: {
+        type: DataTypes.STRING,
+        allowNull: false
     }
 })
 
-HockeyGallery.hasMany(GalleryImage, {as: 'image'})
-GalleryImage.belongsTo(HockeyGallery)
+GalleryVideo.hasMany(GalleryVideoList, {as: 'video'})
+GalleryVideoList.belongsTo(GalleryVideo)
 
 
-module.exports = HockeyGallery
+module.exports = GalleryVideo

@@ -25,12 +25,12 @@ const HockeyClub = sequelize.define('hockey_club', {
 
 HockeyClub.bulkCreate([
     {
-        clubName: 'ХК <<КАИ-ЗИЛАНТ>>',
+        clubName: 'ХК «КАИ-ЗИЛАНТ»',
         clubPoint: 0,
-        clubImage: 'KAI-KAI-ZILANT.jpg'
+        clubImage: 'KAI-ZILANT.jpg'
     }
 ]).then(() => {
-    console.log('Успешно создан клуб ХК <<КАИ-ЗИЛАНТ>>!')
+    console.log('Успешно создан клуб ХК «КАИ-ЗИЛАНТ»!')
 }).catch((error) => {
     console.error(`Во время создания клуба произошли ошибки: ${error}`)
 })

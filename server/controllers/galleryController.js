@@ -1,7 +1,7 @@
 const ErrorHandler = require("../errors/errorHandler")
 const {
     HockeyGallery,
-    GalleryImage
+    GalleryImage,
 } = require("../database")
 const Validation = require("../validations/validation")
 const path = require("path")
@@ -11,13 +11,15 @@ class GalleryController {
     async getAll(req, res, next) {
         try {
             const galleries = await HockeyGallery.findAll({
-                include: {
-                    model: GalleryImage,
-                    as: 'image',
-                    where: {
-                        isMainImage: true
+                include: [
+                    {
+                        model: GalleryImage,
+                        as: 'image',
+                        where: {
+                            isMainImage: true
+                        }
                     }
-                }
+                ]
             })
 
             return res.json({galleries})
@@ -29,10 +31,12 @@ class GalleryController {
     async getAllWithImages(req, res, next) {
         try {
             const galleries = await HockeyGallery.findAll({
-                include: {
-                    model: GalleryImage,
-                    as: 'image'
-                }
+                include: [
+                    {
+                        model: GalleryImage,
+                        as: 'image'
+                    }
+                ]
             })
 
             return res.json({galleries})
@@ -46,10 +50,12 @@ class GalleryController {
 
         try {
             const candidate = await HockeyGallery.findByPk(id, {
-                include: {
-                    model: GalleryImage,
-                    as: 'image'
-                }
+                include: [
+                    {
+                        model: GalleryImage,
+                        as: 'image'
+                    }
+                ]
             })
             if (!candidate)
                 return next(ErrorHandler.badRequest(`Галлереи с номером ${id} не найдено!`))
@@ -61,58 +67,54 @@ class GalleryController {
     }
 
     async create(req, res, next) {
-        const {
-            galleryTitle,
-            galleryDescription
-        } = req.body
-        const image = req.files?.image
+        const {galleryTitle, galleryDescription} = req.body;
+        const image = req.files?.image;
 
         try {
-            if (!(Validation.isString(galleryTitle)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное название галереи!'))
-            if (!(Validation.isString(galleryDescription)))
-                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное описание галлереи!!'))
+            if (!Validation.isString(galleryTitle))
+                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное название галереи!'));
+            if (!Validation.isString(galleryDescription))
+                return next(ErrorHandler.badRequest('Пожалуйста, введите корректное описание галлереи!'));
 
-            const galleryCandidate = await HockeyGallery.findOne({where: {galleryTitle}})
+            const galleryCandidate = await HockeyGallery.findOne({where: {galleryTitle}});
             if (galleryCandidate)
-                return next(ErrorHandler.conflict(`Галлерея с названием ${galleryTitle} уже существует!`))
+                return next(ErrorHandler.conflict(`Галлерея с названием ${galleryTitle} уже существует!`));
 
             const gallery = await HockeyGallery.create({
                 galleryTitle,
                 galleryDescription
-            })
+            });
 
-            let galleryImage = []
-            if (image && Array.isArray(image)) {
-                const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-                for (let images of image) {
-                    const fileExtension = path.extname(images.name).toLowerCase()
-                    if (!allowedImageExtensions.includes(fileExtension)) {
-                        return next(ErrorHandler.badRequest('Пожалуйста, загрузите изображения в форматах .jpeg, .jpg, .png или .gif!'));
-                    }
+            let images = image ? (Array.isArray(image) ? image : [image]) : [];
+            let galleryImage = [];
+            const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
 
-                    const fileName = crypto.randomBytes(16).toString('hex') + '.jpg'
-                    await images.mv(path.resolve(__dirname, '..', 'static', fileName))
-                    galleryImage.push({imageName: fileName})
+            for (let img of images) {
+                const fileExtension = path.extname(img.name).toLowerCase();
+                if (!allowedImageExtensions.includes(fileExtension)) {
+                    return next(ErrorHandler.badRequest('Пожалуйста, загрузите изображения в форматах .jpeg, .jpg, .png или .gif!'));
                 }
+
+                const fileName = crypto.randomBytes(16).toString('hex') + fileExtension;
+                await img.mv(path.resolve(__dirname, '..', 'static', fileName));
+                galleryImage.push({imageName: fileName});
             }
 
-            if (galleryImage.length > 0) {
-                await Promise.all(galleryImage.map(async (image, index) =>
-                        await GalleryImage.create({
-                            imageName: image.imageName,
-                            hockeyGalleryId: gallery.id,
-                            isMainImage: index === 0
-                        })
-                    )
-                )
-            } else if (galleryImage.length <= 0) {
-                return next(ErrorHandler.conflict("Пожалуйста, добавьте хотя бы одно изображение в галлерею!"))
+            if (galleryImage.length <= 0) {
+                return next(ErrorHandler.conflict("Пожалуйста, добавьте хотя бы одно изображение в галлерею!"));
             }
 
-            return res.json({gallery})
+            await Promise.all(galleryImage.map((image, index) =>
+                GalleryImage.create({
+                    imageName: image.imageName,
+                    hockeyGalleryId: gallery.id,
+                    isMainImage: index === 0
+                })
+            ));
+
+            return res.json({gallery});
         } catch (error) {
-            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`));
         }
     }
 

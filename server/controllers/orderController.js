@@ -4,7 +4,7 @@ const {
     Order,
     MerchandiseCart,
     MerchandiseOrder,
-    Merchandise, User
+    Merchandise, User, DeliveryStatus
 } = require("../database");
 const {Op} = require("sequelize");
 const {sendEmailWithImages} = require("../validations/func");
@@ -12,7 +12,28 @@ const path = require("node:path");
 
 class OrderController {
     async getAllUserOrders(req, res, next) {
+        const {id} = req.params
 
+        try {
+            const user = await User.findByPk(id, {
+                include: {
+                    model: Order,
+                    include: [
+                        {
+                            model: MerchandiseOrder,
+                            include: [Merchandise],
+                            required: true
+                        },
+                        {
+                            model: DeliveryStatus
+                        }
+                    ]
+                }
+            })
+            return res.json(user)
+        } catch (error) {
+            return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
+        }
     }
 
     async getAllOrders(req, res, next) {

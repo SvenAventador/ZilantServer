@@ -2,7 +2,11 @@ const Cart = require("./models/Cart");
 const ClubPlayer = require("./models/ClubPlayer");
 const DeliveryStatus = require("./models/DeliveryStatus");
 const GalleryImage = require("./models/GalleryImage");
+const GalleryVideo = require("./models/GalleryVideo");
+const GalleryVideoList = require("./models/GalleryVideoList");
 const GameMatch = require("./models/GameMatch");
+const History = require("./models/History");
+const HistoryChapter = require("./models/HistoryChapter");
 const HockeyClub = require("./models/HockeyClub");
 const MainPerson = require("./models/MainPerson");
 const HockeyGallery = require("./models/HockeyGallery");
@@ -22,7 +26,11 @@ module.exports = {
     ClubPlayer,
     DeliveryStatus,
     GalleryImage,
+    GalleryVideo,
+    GalleryVideoList,
     GameMatch,
+    History,
+    HistoryChapter,
     HockeyClub,
     HockeyGallery,
     MainPerson,
